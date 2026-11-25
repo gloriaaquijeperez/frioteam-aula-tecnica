@@ -1057,6 +1057,56 @@ function getMasteredSet(topicId, level){
   const p=getFcProgress();
   return new Set((p[topicId] && p[topicId][level]) || []);
 }
+/* ---------- Banco creciente por nivel (20 → hasta 80 preguntas) ----------
+   Cada nivel tiene su propio "fondo" de tarjetas reales (flashcardBanks[topic][level]).
+   Mientras todavía queden tarjetas de ese fondo sin haber salido nunca, cada intento
+   (ronda de 20) se arma solo con tarjetas NUEVAS, hasta acumular un máximo de 80 ya
+   vistas (o el total del fondo, si tiene menos de 80). Una vez que ya se vio todo ese
+   acumulado, las rondas siguientes sacan 20 al azar DE ESAS MISMAS, permitiendo que se
+   repitan entre un intento y otro — para entonces la persona ya las vio todas antes. */
+const FC_POOL_TARGET = 80;
+const FC_ROUND_SIZE = 20;
+function getIntroducedPool(topicId, level){
+  const p=getFcProgress();
+  const key='_pool_'+level;
+  return new Set((p[topicId] && p[topicId][key]) || []);
+}
+function addToIntroducedPool(topicId, level, indices){
+  const p=getFcProgress();
+  p[topicId]=p[topicId]||{};
+  const key='_pool_'+level;
+  const merged=new Set([...(p[topicId][key]||[]), ...indices]);
+  p[topicId][key]=[...merged];
+  saveFcProgress(p);
+  return merged;
+}
+function buildFcRoundOrder(topicId, level){
+  const bank=(flashcardBanks[topicId] && flashcardBanks[topicId][level]) || [];
+  const allIdx=bank.map((_,i)=>i);
+  const poolTarget=Math.min(FC_POOL_TARGET, allIdx.length);
+  let introduced=getIntroducedPool(topicId, level);
+  if(introduced.size < poolTarget){
+    // Todavía quedan tarjetas de este nivel que nunca han salido: la ronda se arma
+    // con tarjetas nuevas (nunca vistas), para seguir haciendo crecer el banco.
+    const unseen=shuffleArray(allIdx.filter(i=>!introduced.has(i)));
+    const newCount=Math.min(FC_ROUND_SIZE, unseen.length, poolTarget - introduced.size);
+    const newOnes=unseen.slice(0, newCount);
+    introduced=addToIntroducedPool(topicId, level, newOnes);
+    let round=[...newOnes];
+    // Si con las nuevas no se llega a 20 (el fondo real ya casi se agotó o es chico),
+    // se completa la ronda con tarjetas ya vistas antes, para no dejarla incompleta.
+    if(round.length < FC_ROUND_SIZE){
+      const already=shuffleArray([...introduced].filter(i=>!newOnes.includes(i)));
+      round=round.concat(already.slice(0, FC_ROUND_SIZE - round.length));
+    }
+    return shuffleArray(round);
+  }
+  // Ya se vieron todas las tarjetas del acumulado de este nivel: la ronda saca 20 al
+  // azar de esas mismas (ahora sí pueden repetirse entre un intento y otro).
+  const pool=[...introduced];
+  if(pool.length <= FC_ROUND_SIZE) return shuffleArray(pool);
+  return shuffleArray(pool).slice(0, FC_ROUND_SIZE);
+}
 function setMasteredSet(topicId, level, set){
   const p=getFcProgress();
   p[topicId]=p[topicId]||{};
@@ -1089,18 +1139,35 @@ function startFcRound(topicId, level){
   if(!isFcLevelUnlocked(topicId, level)) return;
   fcLevel=level; fcPos=0; fcWrongRound=[]; fcCorrectRound=[]; fcRoundDone=false;
   // El contador de "dominadas" se reinicia en cada intento: la meta es acertar
-  // TODAS las tarjetas del nivel dentro de la misma ronda, no ir acumulando
-  // aciertos sueltos de distintos intentos.
+  // TODAS las tarjetas de ESTA ronda (no de todo el banco), en el mismo intento.
   setMasteredSet(topicId, level, new Set());
-  const bank=(flashcardBanks[topicId] && flashcardBanks[topicId][level]) || [];
-  fcOrder=shuffleArray(bank.map((_,i)=>i));
+  fcOrder=buildFcRoundOrder(topicId, level);
   renderFlashcards();
 }
-function buildFcOptions(bank, cardIdx){
+function buildFcOptions(bank, cardIdx, topicId){
   const correctText=bank[cardIdx][1];
-  const otherIdx=bank.map((_,i)=>i).filter(i=>i!==cardIdx);
-  const distractorIdx=shuffleArray(otherIdx).slice(0,3);
-  const options=shuffleArray([correctText, ...distractorIdx.map(i=>bank[i][1])]);
+  // Candidatas a opción incorrecta: todas las respuestas reales del mismo TEMA (en
+  // cualquier nivel), para tener de dónde elegir alternativas de un largo parecido al
+  // de la respuesta correcta y que así no se note a simple vista cuál es la correcta.
+  const topicBanks = (topicId && flashcardBanks[topicId]) || {bajo:bank};
+  const candidates=[];
+  Object.values(topicBanks).forEach(levelBank=>{
+    (levelBank||[]).forEach(card=>{ if(card[1] !== correctText) candidates.push(card[1]); });
+  });
+  const pool = candidates.length>=3 ? candidates : bank.map((_,i)=>i).filter(i=>i!==cardIdx).map(i=>bank[i][1]);
+  const targetLen = correctText.length;
+  const ranked = [...new Set(pool)]
+    .map(text=>({text, diff: Math.abs(text.length - targetLen)}))
+    .sort((a,b)=>a.diff - b.diff);
+  // De las opciones de largo más parecido, se eligen 3 al azar (no siempre las 3 más
+  // cercanas, para variar), evitando que la correcta resalte por ser más larga o corta.
+  const closest = ranked.slice(0, Math.max(6, Math.min(12, ranked.length)));
+  const distractors = shuffleArray(closest).slice(0,3).map(c=>c.text);
+  while(distractors.length<3 && ranked.length>distractors.length){
+    const next = ranked[distractors.length];
+    if(next && !distractors.includes(next.text)) distractors.push(next.text);
+  }
+  const options=shuffleArray([correctText, ...distractors]);
   return {options, correctIndex: options.indexOf(correctText)};
 }
 function fireConfetti(container){
@@ -1138,18 +1205,20 @@ function renderFlashcards(){
   const topicMeta=topics.find(t=>t.id===topicId);
 
   if(!fcOrder.length && !fcRoundDone){
-    fcOrder=shuffleArray((banks[fcLevel]||[]).map((_,i)=>i));
+    fcOrder=buildFcRoundOrder(topicId, fcLevel);
   }
 
   const tabsHtml=levels.map(lv=>{
     const unlocked=isFcLevelUnlocked(topicId, lv);
     const mastered=getMasteredSet(topicId, lv).size;
-    const total=(banks[lv]||[]).length;
-    return `<button class="fc-level-tab ${lv===fcLevel?'active':''} ${unlocked?'':'locked'}" data-fc-level="${lv}" ${unlocked?'':'disabled'}>${levelLabel[lv]} <small>${mastered}/${total}</small></button>`;
+    // El "total" del botón es el tamaño de la ronda (hasta 20), no el banco completo
+    // de hasta 80: lo que hay que acertar TODO es la ronda actual, no el banco entero.
+    const roundSize=Math.min(FC_ROUND_SIZE, (banks[lv]||[]).length);
+    return `<button class="fc-level-tab ${lv===fcLevel?'active':''} ${unlocked?'':'locked'}" data-fc-level="${lv}" ${unlocked?'':'disabled'}>${levelLabel[lv]} <small>${mastered}/${roundSize}</small></button>`;
   }).join('');
 
   if(fcRoundDone){
-    const total=(banks[fcLevel]||[]).length;
+    const total=fcOrder.length;
     const masteredCount=getMasteredSet(topicId, fcLevel).size;
     // "Completo" = acertaste TODAS las tarjetas de este nivel en esta misma ronda
     // (cero errores), no sumando aciertos de intentos anteriores.
@@ -1184,7 +1253,7 @@ function renderFlashcards(){
   const cardIdx=fcOrder[fcPos];
   const card=bank[cardIdx];
   const masteredSet=getMasteredSet(topicId, fcLevel);
-  const {options, correctIndex}=buildFcOptions(bank, cardIdx);
+  const {options, correctIndex}=buildFcOptions(bank, cardIdx, topicId);
   const letters=['A','B','C','D'];
 
   panel.innerHTML=`<div class="flashcards-toolbar"><div><span class="exam-kicker">REPASO ACTIVO · ${r.title}</span><h2>Flashcards</h2>${topicMeta?`<p>Tema: ${topicMeta.name}</p>`:''}</div><span class="flashcard-count">${fcPos+1} / ${fcOrder.length}</span></div>
@@ -1237,7 +1306,9 @@ function renderFlashcards(){
         } else {
           backFace.classList.add('fc-result-wrong');
           fireShake(cardEl);
-          fcWrongRound.push({q: card[0], your: options[chosen], correct: card[1]});
+          // Nunca se guarda la respuesta correcta aquí (ni siquiera para uso interno),
+          // para que sea imposible que el resumen final la termine mostrando por error.
+          fcWrongRound.push({q: card[0], your: options[chosen]});
         }
         setTimeout(advanceCard, 1300);
       }, 1000);
