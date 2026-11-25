@@ -39,7 +39,7 @@ const resources = [
     author:'Roy J. Dossat · 1961',
     thumb:'thumb-manual-dossat.jpg',
     summary:'Guía para comprender el ciclo frigorífico y sus componentes: desde presión, energía y propiedades del refrigerante hasta evaporadores, compresores, condensadores, controles, tuberías y circuitos eléctricos.',
-    file:'MANUALES DE REFRIGERACION.pdf',
+    file:'https://github.com/gloriaaquijeperez/frioteam-aula-tecnica/releases/download/materiales-v1/MANUALES.DE.REFRIGERACION.pdf',
     category:'manual', topic:'fundamentos', tone:'blue', icon:icons.book,
     subtemas:[
       {t:'Presión, trabajo, potencia y energía', p:3, d:'Magnitudes que describen fuerzas, transferencia y ritmo de trabajo en equipos.'},
@@ -72,9 +72,9 @@ const resources = [
     author:'BITZER Compressores Ltda. · Alessandro da Silva y Marcos Euzebio · 2013',
     thumb:'thumb-curso-nh3.jpg',
     summary:'El curso BITZER recorre la introducción a la empresa y los fundamentos del amoníaco, seguridad y normas, diseño de salas de máquinas y sistemas industriales. También incluye compresores, controles y componentes, boletines técnicos, tablas de conversión, propiedades termodinámicas, literatura complementaria y fluxogramas.',
-    file:'CURSO REFRIG. INDUSTRIAL_NH3_copy.pdf',
-    fileEs:'CURSO REFRIG. INDUSTRIAL_NH3_copy.pdf',
-    filePt:'CURSO_REFRIG_INDUSTRIAL_NH3_PORTUGUES.pdf',
+    file:'https://github.com/gloriaaquijeperez/frioteam-aula-tecnica/releases/download/materiales-v1/CURSO_REFRIG_INDUSTRIAL_NH3_ES.pdf',
+    fileEs:'https://github.com/gloriaaquijeperez/frioteam-aula-tecnica/releases/download/materiales-v1/CURSO_REFRIG_INDUSTRIAL_NH3_ES.pdf',
+    filePt:'https://github.com/gloriaaquijeperez/frioteam-aula-tecnica/releases/download/materiales-v1/CURSO_REFRIG_INDUSTRIAL_NH3_PORTUGUES.pdf',
     category:'curso', topic:'nh3', tone:'green', icon:icons.flask,
     subtemas:[
       {t:'Introducción a BITZER', p:4, d:'La sección inicial presenta la empresa, su desarrollo y el panorama de sus productos: compresores, unidades condensadoras, recipientes y otros equipos de refrigeración.'},
@@ -97,7 +97,7 @@ const resources = [
     author:'BITZER Compressores Ltda. · 2014',
     thumb:'thumb-sir1-bitzer.jpg',
     summary:'La presentación combina una cronología de BITZER con teoría de refrigeración, ciclo y diagrama P-h, medición de sobrecalentamiento y subenfriamiento, límites de aplicación, control de capacidad y mantenimiento de compresores.',
-    file:'I - SIR - PRIMEIRO DIA (1).pdf',
+    file:'https://github.com/gloriaaquijeperez/frioteam-aula-tecnica/releases/download/materiales-v1/I.-.SIR.-.PRIMEIRO.DIA.1.pdf',
     category:'curso', topic:'compresores', tone:'violet', icon:icons.gear,
     subtemas:[
       {t:'Cronología de BITZER y desarrollo regional', p:1, d:'La cronología del material incluye hitos de la empresa y la expansión de BITZER Brasil; entre ellos, el laboratorio de CO₂ subcrítico inaugurado en 2008.'},
@@ -115,7 +115,7 @@ const resources = [
     author:'BITZER Compressores Ltda. · 2014',
     thumb:'thumb-sir2-unidades.jpg',
     summary:'La presentación aborda selección de unidades condensadoras, tuberías y soldadura, montajes en paralelo y de dos etapas, controles de aceite, cascada y economizador, mantenimiento preventivo y diagnóstico.',
-    file:'II - SIR - SEGUNDO DIA.pdf',
+    file:'https://github.com/gloriaaquijeperez/frioteam-aula-tecnica/releases/download/materiales-v1/II.-.SIR.-.SEGUNDO.DIA.pdf',
     category:'curso', topic:'compresores', tone:'violet', icon:icons.wrench,
     subtemas:[
       {t:'Selección de unidades condensadoras TLH y TLHD', p:2, d:'La presentación compara unidades condensadoras y configuraciones tándem mediante capacidades publicadas para las condiciones de refrigerante y operación indicadas en sus tablas.'},
