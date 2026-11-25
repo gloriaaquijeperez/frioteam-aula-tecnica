@@ -9,8 +9,6 @@ export async function onRequestGet({ params, request }) {
 
   const upstream = `https://github.com/${REPO}/releases/download/${TAG}/${encodeURIComponent(name)}`;
 
-  // Reenvía el header "Range" si el navegador lo pide (así el visor puede cargar el PDF
-  // por partes en vez de descargar los 176 MB completos antes de mostrar nada).
   const reqHeaders = { 'User-Agent': 'Mozilla/5.0 (FrioteamAulaTecnica)' };
   const range = request.headers.get('Range');
   if (range) reqHeaders['Range'] = range;
@@ -29,7 +27,7 @@ export async function onRequestGet({ params, request }) {
   }
 
   const headers = new Headers();
-  headers.set('Content-Type', upstreamResp.headers.get('Content-Type') || 'application/pdf');
+  headers.set('Content-Type', 'application/pdf');
   headers.set('Content-Disposition', 'inline; filename="' + name + '"');
   headers.set('Access-Control-Allow-Origin', '*');
   headers.set('Accept-Ranges', 'bytes');
