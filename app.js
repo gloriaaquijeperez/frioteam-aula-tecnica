@@ -806,13 +806,22 @@ async function renderPdfPageToCanvas(pdfDoc, pageNum, canvas, loadingEl){
   }
 }
 const pdfLangChoice = {};
+// Los PDFs se alojan como adjuntos de un Release de GitHub (para que quepan los archivos
+// pesados), pero GitHub fuerza la descarga de esos adjuntos en vez de mostrarlos en pantalla.
+// Por eso el VISOR usa esta función que los redirige a través de la Cloudflare Pages Function
+// en /pdf/<archivo>, la cual sirve el mismo contenido pero sin forzar la descarga. Los botones
+// de "Descargar PDF" siguen usando el enlace directo de GitHub (eso sí debe forzar la descarga).
+function toViewerUrl(githubFileUrl){
+  const m = /\/releases\/download\/[^/]+\/([^/?#]+)/.exec(githubFileUrl || '');
+  return m ? `/pdf/${m[1]}` : encodeURI(githubFileUrl || '');
+}
 function renderPdfPanel(){
   const r = resources[selectedResource];
   const resourceIndex = selectedResource;
   const hasLangToggle = !!(r.filePt && r.fileEs);
   const activeLang = hasLangToggle ? (pdfLangChoice[resourceIndex] || 'es') : null;
   const activeFile = hasLangToggle ? (activeLang === 'pt' ? r.filePt : r.fileEs) : r.file;
-  const fileUrl = encodeURI(activeFile);
+  const fileUrl = toViewerUrl(activeFile);
   const panel = document.querySelector('#pdfview-panel');
   panel.innerHTML = `<div class="pdf-layout">
     <div class="pdf-viewer-wrap">
