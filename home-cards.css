@@ -74,6 +74,10 @@
 @media(max-width:560px){.pdf-canvas-toolbar{gap:8px}.pdf-open-tab{margin-left:0;order:5;flex-basis:100%}.pdf-lang-toggle{order:4;flex-basis:100%;justify-content:flex-start}}
 .pdf-canvas-scroll{position:relative;flex:1 1 auto;height:78vh;min-height:520px;overflow:auto;display:flex;justify-content:center;background:#e8edf3}
 #pdf-canvas{display:block;margin:16px auto;box-shadow:0 6px 20px -8px rgba(10,40,70,.35);background:#fff}
+.pdf-pages{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%;padding:16px 0}
+.pdf-page-wrap{position:relative;min-height:200px;display:flex;align-items:center;justify-content:center}
+.pdf-page-wrap canvas{display:block;box-shadow:0 6px 20px -8px rgba(10,40,70,.35);background:#fff}
+.pdf-page-wrap:not(.rendered)::after{content:'';width:70%;max-width:640px;aspect-ratio:1/1.3;background:#fff;box-shadow:0 6px 20px -8px rgba(10,40,70,.2)}
 .pdf-loading{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#5b6b80;font:700 .85rem var(--font);background:#e8edf3cc}
 /* El atributo "hidden" puesto desde JS debe ganar siempre sobre display:block/flex de arriba;
    si no, el iframe, el canvas o el aviso de "Cargando" quedan visibles aunque se oculten. */

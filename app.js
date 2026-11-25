@@ -767,8 +767,14 @@ function loadPdfjs(){
         lib.GlobalWorkerOptions.workerSrc = 'pdfjs/pdf.worker.min.mjs';
         return lib;
       }),
-      6000
-    ).catch(()=>null);
+      20000
+    ).catch(()=>{
+      // Si falló o tardó demasiado (p.ej. una conexión lenta), no se deja guardado el
+      // fracaso para siempre: se limpia para que el próximo material que se abra pueda
+      // volver a intentarlo, en vez de quedar usando el visor clásico el resto de la sesión.
+      pdfjsLibPromise = null;
+      return null;
+    });
   }
   return pdfjsLibPromise;
 }
@@ -778,13 +784,12 @@ function getPdfDoc(resourceIndex, fileUrl, pdfjsLib){
   }
   return pdfDocCache[resourceIndex];
 }
-async function renderPdfPageToCanvas(pdfDoc, pageNum, canvas, loadingEl){
-  if(pdfCurrentRenderTask){ try{ pdfCurrentRenderTask.cancel(); }catch(e){} }
-  if(loadingEl) loadingEl.hidden = false;
+// Dibuja UNA página dentro de su propio <canvas> (cada página del documento tiene el suyo,
+// ver renderPdfPanel). containerWidth decide la escala para que se vea nítido y no recorte.
+async function renderPageIntoCanvas(pdfDoc, pageNum, canvas, containerWidth){
   const page = await pdfDoc.getPage(pageNum);
-  const container = canvas.parentElement;
   const unscaledViewport = page.getViewport({scale:1});
-  const targetWidth = (container && container.clientWidth) || 700;
+  const targetWidth = containerWidth || 700;
   const scale = targetWidth / unscaledViewport.width;
   const viewport = page.getViewport({scale});
   const dpr = window.devicePixelRatio || 1;
@@ -795,14 +800,11 @@ async function renderPdfPageToCanvas(pdfDoc, pageNum, canvas, loadingEl){
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const task = page.render({canvasContext: ctx, viewport});
-  pdfCurrentRenderTask = task;
   try{
     await task.promise;
   } catch(e){
     if(e && e.name === 'RenderingCancelledException') return;
     throw e;
-  } finally {
-    if(loadingEl) loadingEl.hidden = true;
   }
 }
 const pdfLangChoice = {};
@@ -837,7 +839,7 @@ function renderPdfPanel(){
       </div>
       <div class="pdf-canvas-scroll" id="pdf-canvas-scroll">
         <div class="pdf-loading" id="pdf-loading">Cargando documento…</div>
-        <canvas id="pdf-canvas" hidden></canvas>
+        <div class="pdf-pages" id="pdf-pages" hidden></div>
         <iframe class="pdf-frame" id="pdf-frame" hidden title="PDF de ${r.title}"></iframe>
       </div>
     </div>
@@ -862,7 +864,10 @@ function renderPdfPanel(){
   let usingCanvas = false;
   let pdfDoc = null;
   let canvasActivationPromise = null;
-  const canvas = document.querySelector('#pdf-canvas');
+  let pageObserver = null;
+  const renderedPages = new Set();
+  const scrollWrap = document.querySelector('#pdf-canvas-scroll');
+  const pagesEl = document.querySelector('#pdf-pages');
   const frame = document.querySelector('#pdf-frame');
   const loadingEl = document.querySelector('#pdf-loading');
   const pageInput = document.querySelector('#pdf-page-input');
@@ -870,33 +875,93 @@ function renderPdfPanel(){
 
   // El visor se muestra siempre de inmediato con el método clásico (iframe), que nunca se queda
   // "cargando": así la persona ve el PDF al instante pase lo que pase con PDF.js. Si PDF.js logra
-  // cargar en segundo plano (sin bloquear nada), se reemplaza por el visor en <canvas> para que
-  // los saltos de página no vuelvan a recargar el documento. Si no, se sigue usando el iframe
-  // normal (que sí funciona, aunque recargue al cambiar de página).
+  // cargar en segundo plano (sin bloquear nada), se reemplaza por el visor en <canvas>, con TODAS
+  // las páginas en una sola columna con scroll (como el visor clásico), para que los saltos de
+  // subtema no vuelvan a recargar el documento y además se pueda seguir desplazando normalmente.
+  // Si no, se sigue usando el iframe normal (que sí funciona, aunque recargue al cambiar de página).
   loadingEl.hidden = true;
 
   function useIframeFallback(page){
     usingCanvas = false;
-    canvas.hidden = true; loadingEl.hidden = true;
+    if(pageObserver){ pageObserver.disconnect(); pageObserver = null; }
+    pagesEl.hidden = true; loadingEl.hidden = true;
     frame.hidden = false;
     frame.src = `${fileUrl}?p=${page}#page=${page}`;
   }
+
+  // Dibuja (si todavía no se ha dibujado) la página pageNum dentro de su <canvas> ya ubicado
+  // en el documento. Varias páginas pueden estar dibujándose a la vez sin pisarse, porque cada
+  // una tiene su propio <canvas>.
+  function ensurePageRendered(pageNum){
+    if(renderedPages.has(pageNum)) return Promise.resolve();
+    renderedPages.add(pageNum);
+    const wrap = pagesEl.querySelector(`[data-page="${pageNum}"]`);
+    const pageCanvas = wrap && wrap.querySelector('canvas');
+    if(!wrap || !pageCanvas) return Promise.resolve();
+    const containerWidth = pagesEl.clientWidth || 700;
+    return renderPageIntoCanvas(pdfDoc, pageNum, pageCanvas, containerWidth).then(()=>{
+      wrap.classList.add('rendered');
+    }).catch(()=>{ renderedPages.delete(pageNum); });
+  }
+
+  // Crea un contenedor (con su <canvas>) por cada página del documento, antes de dibujar nada,
+  // para que la columna tenga ya el alto total y se pueda hacer scroll de verdad por todo el PDF.
+  function buildPagePlaceholders(){
+    let html = '';
+    for(let i=1;i<=totalPages;i++){
+      html += `<div class="pdf-page-wrap" data-page="${i}"><canvas></canvas></div>`;
+    }
+    pagesEl.innerHTML = html;
+    pageObserver = new IntersectionObserver(entries=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          ensurePageRendered(Number(entry.target.dataset.page));
+        }
+      });
+    }, {root: scrollWrap, rootMargin: '800px 0px', threshold: 0.01});
+    pagesEl.querySelectorAll('.pdf-page-wrap').forEach(el=>pageObserver.observe(el));
+  }
+
+  // Mientras la persona se desplaza manualmente, mantiene actualizado el número de página que
+  // se ve arriba del todo (sin esto, el indicador se quedaría en la última página saltada).
+  let scrollTicking = false;
+  scrollWrap.addEventListener('scroll',()=>{
+    if(!usingCanvas || scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(()=>{
+      scrollTicking = false;
+      const wraps = pagesEl.querySelectorAll('.pdf-page-wrap');
+      const wrapRect0 = scrollWrap.getBoundingClientRect();
+      for(const wrap of wraps){
+        const rect = wrap.getBoundingClientRect();
+        if(rect.bottom - wrapRect0.top > 1){
+          const n = Number(wrap.dataset.page);
+          if(n !== currentPage){ currentPage = n; pageInput.value = n; }
+          break;
+        }
+      }
+    });
+  });
 
   function goToPage(n){
     currentPage = totalPages ? Math.min(Math.max(1,n), totalPages) : Math.max(1,n);
     pageInput.value = currentPage;
     if(usingCanvas && pdfDoc){
-      renderPdfPageToCanvas(pdfDoc, currentPage, canvas, loadingEl).catch(()=>useIframeFallback(currentPage));
+      const wrap = pagesEl.querySelector(`[data-page="${currentPage}"]`);
+      if(wrap) wrap.scrollIntoView({block:'start'});
+      ensurePageRendered(currentPage);
     } else if(canvasActivationPromise){
       // El visor rápido (PDF.js) todavía se está activando en segundo plano: en vez de
       // rendirse de inmediato al visor clásico (que recarga todo el documento), se espera
-      // a que termine de activarse y la página pedida se dibuja directo en el canvas.
+      // a que termine de activarse y la página pedida se muestra directo en su canvas.
       loadingEl.hidden = false;
       canvasActivationPromise.then(ok=>{
         if(ok && pdfDoc){
           usingCanvas = true;
-          canvas.hidden = false; frame.hidden = true;
-          renderPdfPageToCanvas(pdfDoc, currentPage, canvas, loadingEl).catch(()=>useIframeFallback(currentPage));
+          pagesEl.hidden = false; frame.hidden = true;
+          const wrap = pagesEl.querySelector(`[data-page="${currentPage}"]`);
+          if(wrap) wrap.scrollIntoView({block:'start'});
+          ensurePageRendered(currentPage);
         } else {
           useIframeFallback(currentPage);
         }
@@ -923,17 +988,20 @@ function renderPdfPanel(){
   // Intento de mejora en segundo plano, sin bloquear la vista de arriba. Se guarda la promesa
   // (canvasActivationPromise) para que, si la persona hace clic en un subtema mientras esto
   // todavía está en camino, goToPage() pueda esperar el resultado en vez de recargar el PDF.
-  canvasActivationPromise = withTimeout(loadPdfjs(), 6500).then(pdfjsLib=>{
+  canvasActivationPromise = withTimeout(loadPdfjs(), 20000).then(pdfjsLib=>{
     if(!pdfjsLib || !document.contains(panel)) return false;
-    return withTimeout(getPdfDoc(resourceIndex, fileUrl, pdfjsLib), 15000).then(doc=>{
+    return withTimeout(getPdfDoc(resourceIndex, fileUrl, pdfjsLib), 60000).then(doc=>{
       if(!document.contains(panel)) return false;
       pdfDoc = doc;
       totalPages = doc.numPages;
       pageTotalEl.textContent = totalPages;
+      buildPagePlaceholders();
       usingCanvas = true;
-      canvas.hidden = false;
+      pagesEl.hidden = false;
       frame.hidden = true;
-      return renderPdfPageToCanvas(pdfDoc, currentPage, canvas, loadingEl).then(()=>true);
+      const wrap = pagesEl.querySelector(`[data-page="${currentPage}"]`);
+      if(wrap) wrap.scrollIntoView({block:'start'});
+      return ensurePageRendered(currentPage).then(()=>true);
     });
   }).catch(()=>false);
 
