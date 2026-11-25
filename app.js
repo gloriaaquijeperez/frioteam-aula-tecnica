@@ -774,7 +774,7 @@ function loadPdfjs(){
 }
 function getPdfDoc(resourceIndex, fileUrl, pdfjsLib){
   if(!pdfDocCache[resourceIndex]){
-    pdfDocCache[resourceIndex] = pdfjsLib.getDocument(fileUrl).promise;
+    pdfDocCache[resourceIndex] = pdfjsLib.getDocument({url: fileUrl}).promise;
   }
   return pdfDocCache[resourceIndex];
 }
