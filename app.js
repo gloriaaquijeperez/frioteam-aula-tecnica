@@ -861,6 +861,7 @@ function renderPdfPanel(){
   let totalPages = null;
   let usingCanvas = false;
   let pdfDoc = null;
+  let canvasActivationPromise = null;
   const canvas = document.querySelector('#pdf-canvas');
   const frame = document.querySelector('#pdf-frame');
   const loadingEl = document.querySelector('#pdf-loading');
@@ -886,6 +887,20 @@ function renderPdfPanel(){
     pageInput.value = currentPage;
     if(usingCanvas && pdfDoc){
       renderPdfPageToCanvas(pdfDoc, currentPage, canvas, loadingEl).catch(()=>useIframeFallback(currentPage));
+    } else if(canvasActivationPromise){
+      // El visor rápido (PDF.js) todavía se está activando en segundo plano: en vez de
+      // rendirse de inmediato al visor clásico (que recarga todo el documento), se espera
+      // a que termine de activarse y la página pedida se dibuja directo en el canvas.
+      loadingEl.hidden = false;
+      canvasActivationPromise.then(ok=>{
+        if(ok && pdfDoc){
+          usingCanvas = true;
+          canvas.hidden = false; frame.hidden = true;
+          renderPdfPageToCanvas(pdfDoc, currentPage, canvas, loadingEl).catch(()=>useIframeFallback(currentPage));
+        } else {
+          useIframeFallback(currentPage);
+        }
+      });
     } else {
       useIframeFallback(currentPage);
     }
@@ -905,20 +920,22 @@ function renderPdfPanel(){
   // Visor clásico desde ya (nunca se queda esperando).
   useIframeFallback(currentPage);
 
-  // Intento de mejora en segundo plano, sin bloquear la vista de arriba.
-  withTimeout(loadPdfjs(), 6500).then(pdfjsLib=>{
-    if(!pdfjsLib || !document.contains(panel)) return;
+  // Intento de mejora en segundo plano, sin bloquear la vista de arriba. Se guarda la promesa
+  // (canvasActivationPromise) para que, si la persona hace clic en un subtema mientras esto
+  // todavía está en camino, goToPage() pueda esperar el resultado en vez de recargar el PDF.
+  canvasActivationPromise = withTimeout(loadPdfjs(), 6500).then(pdfjsLib=>{
+    if(!pdfjsLib || !document.contains(panel)) return false;
     return withTimeout(getPdfDoc(resourceIndex, fileUrl, pdfjsLib), 15000).then(doc=>{
-      if(!document.contains(panel)) return;
+      if(!document.contains(panel)) return false;
       pdfDoc = doc;
       totalPages = doc.numPages;
       pageTotalEl.textContent = totalPages;
       usingCanvas = true;
       canvas.hidden = false;
       frame.hidden = true;
-      return renderPdfPageToCanvas(pdfDoc, currentPage, canvas, loadingEl);
+      return renderPdfPageToCanvas(pdfDoc, currentPage, canvas, loadingEl).then(()=>true);
     });
-  }).catch(()=>{ /* se queda con el visor clásico, que ya está mostrando el documento */ });
+  }).catch(()=>false);
 
   panel.querySelectorAll('[data-pdf-subtopic]').forEach(btn=>{
     btn.addEventListener('click',()=>{
