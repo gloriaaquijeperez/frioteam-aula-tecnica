@@ -1,0 +1,160 @@
+/* Submenú "Materiales de estudio" en la barra lateral: despliega in-place, sin navegar. */
+.nav-link-expand{width:100%;border:0;background:none;cursor:pointer;justify-content:flex-start!important;font-family:inherit;text-align:left}
+.nav-expand-caret{margin-left:auto;font-size:.75rem;transition:transform .18s ease}
+.nav-link-expand.open .nav-expand-caret{transform:rotate(180deg)}
+.nav-submenu[hidden]{display:none!important}
+.nav-submenu{display:flex;flex-direction:column;gap:3px;margin:2px 0 6px 14px;padding-left:16px;border-left:2px solid rgba(255,255,255,.12)}
+.nav-submenu-item{display:block;width:100%;border:0;background:none;cursor:pointer;text-align:left;font-family:inherit;color:#aab5e0;font-size:.84rem;padding:8px 10px;border-radius:9px;transition:background .15s,color .15s}
+.nav-submenu-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-submenu-item.active{background:rgba(76,210,255,.18);color:#fff;font-weight:700}
+
+.topic-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.home-card{position:relative;display:flex!important;flex-direction:row!important;align-items:stretch!important;min-height:224px!important;height:auto!important;padding:0!important;border-radius:18px!important;background:linear-gradient(150deg,#ffffff,#eef3fa 75%)!important;border:1px solid #e3e9f1!important;border-left:5px solid transparent!important;box-shadow:0 10px 22px -14px rgba(10,40,70,.18)!important;color:#17233d!important;overflow:hidden!important;transition:transform .2s ease,box-shadow .2s ease}
+.home-card:hover{transform:translateY(-3px);box-shadow:0 16px 30px -14px rgba(10,40,70,.26)!important}
+.home-card-blue{border-left-color:#1e6fd9!important}
+.home-card-green{border-left-color:#0d9467!important}
+.home-card-violet{border-left-color:#7a4fd1!important}
+.home-card-orange{border-left-color:#c2730f!important}
+/* height:100% aquí no servía: con el padre en height:auto (una tarjeta puede crecer según
+   su descripción), un 100% no tiene base para resolverse y el navegador cae de vuelta al
+   tamaño natural de la imagen en vez de estirarla — por eso las fotos "horizontales" (más
+   anchas que altas) dejaban franjas blancas y las "verticales" se veían bien por pura
+   coincidencia. height:auto + align-self:stretch sí fuerza a esta columna a igualar la
+   altura real de la fila, así que la imagen (con object-fit:cover) siempre la llena entera. */
+.home-card-media{position:static!important;width:120px!important;height:auto!important;align-self:stretch!important;flex-shrink:0!important;border-radius:0!important;overflow:hidden!important;background:#eef2f8!important}
+.home-card-media img{width:100%!important;height:100%!important;min-height:100%!important;object-fit:cover!important;display:block;opacity:1!important}
+.home-card-count{display:none!important}
+.home-card-body{flex:1 1 auto!important;min-height:0!important;min-width:0;display:flex!important;flex-direction:column!important;justify-content:center!important;padding:14px 18px!important;margin-top:0!important}
+.home-card-body>small{display:none!important}
+.home-card-body h3{margin:0 0 4px!important;color:#17233d!important;font-size:.92rem;font-weight:800;line-height:1.26}
+.home-card-author{display:block!important;margin:0 0 6px!important;color:#8a93a3!important;font-size:.72rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-card-desc{display:block!important;margin:0!important;color:#6c7684!important;font-size:.72rem;line-height:1.35;-webkit-line-clamp:unset!important;-webkit-box-orient:unset!important;overflow:visible!important;white-space:normal!important}
+.home-card-body h3{-webkit-line-clamp:unset!important;overflow:visible!important;white-space:normal!important}
+.home-card-footer{margin-top:auto!important;padding-top:0!important;display:flex;flex-direction:column;gap:6px}
+.home-card-action{margin-top:10px;align-self:flex-start!important;display:flex;align-items:center;gap:6px;padding:6px 13px!important;border:0;border-radius:9px;background:transparent!important;font:800 .7rem var(--font);cursor:pointer;transition:transform .15s ease}
+.home-card-blue .home-card-action{background:#1e6fd91f!important;color:#1e6fd9!important}
+.home-card-green .home-card-action{background:#0d94671f!important;color:#0d9467!important}
+.home-card-violet .home-card-action{background:#7a4fd11f!important;color:#7a4fd1!important}
+.home-card-orange .home-card-action{background:#c2730f1f!important;color:#c2730f!important}
+.home-card-action:hover{transform:translateY(-2px);box-shadow:none!important}
+.home-card-action span{font-size:.85rem}
+
+.stat-row{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:16px!important}
+.stat-card{position:relative!important;display:flex!important;align-items:center!important;gap:16px!important;padding:20px 20px 30px!important;border-radius:18px!important;background:linear-gradient(150deg,rgba(40,30,70,.42),rgba(60,45,110,.32))!important;backdrop-filter:blur(18px) saturate(160%)!important;-webkit-backdrop-filter:blur(18px) saturate(160%)!important;border:1px solid rgba(255,255,255,.28)!important;box-shadow:0 16px 32px -16px rgba(10,5,30,.4)!important;overflow:hidden!important;color:#fff!important}
+.stat-card:after{content:"";position:absolute;left:20px;right:20px;bottom:14px;height:4px;border-radius:4px}
+.stat-card:has(.stat-icon.blue):after{background:linear-gradient(90deg,#4b3df5,#8a63ff)}
+.stat-card:has(.stat-icon.violet):after{background:linear-gradient(90deg,#9a3fd6,#e34fc2)}
+.stat-card:has(.stat-icon.green):after{background:linear-gradient(90deg,#0fae6c,#1fe3a0)}
+.stat-icon{width:48px!important;height:48px!important;border-radius:14px!important;display:grid!important;place-items:center!important;color:#fff!important;flex-shrink:0!important}
+.stat-icon svg{width:24px;height:24px}
+.stat-icon.blue{background:linear-gradient(145deg,#5b3df0,#8a63ff)!important;box-shadow:0 10px 20px -6px #5b3df077}
+.stat-icon.violet{background:linear-gradient(145deg,#a53fd0,#e34fc2)!important;box-shadow:0 10px 20px -6px #a53fd077}
+.stat-icon.green{background:linear-gradient(145deg,#0d9467,#1fe3a0)!important;box-shadow:0 10px 20px -6px #0d946777}
+.stat-card>div:not(.stat-icon){display:flex!important;flex-direction:column!important}
+.stat-num{color:#fff!important;font-size:1.9rem!important;font-weight:800!important;line-height:1!important}
+.stat-label{color:#ffffffb0!important;font-size:.74rem!important;margin-top:4px!important;font-weight:500!important}
+
+.study-header-author{margin:4px 0 0;color:#9fc3e8;font-size:.82rem;font-style:italic}
+.study-header-desc{margin:10px 0 0!important;max-width:720px;color:#dfe9f5;font-size:.92rem;line-height:1.55}
+
+.pdf-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.pdf-viewer-wrap{border-radius:14px;overflow:hidden;border:1px solid #d7e3ee;box-shadow:0 10px 24px -14px rgba(10,40,70,.3);background:#f3f6fa;display:flex;flex-direction:column}
+.pdf-frame{display:block;width:100%;height:78vh;min-height:520px;border:0}
+.pdf-canvas-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 14px;border-bottom:1px solid #d7e3ee;background:#fff}
+.pdf-nav-btn{width:32px;height:32px;border-radius:8px;border:1px solid #d7e3ee;background:#f3f6fa;color:#17233d;font-size:1.1rem;font-weight:800;cursor:pointer}
+.pdf-nav-btn:hover{background:#eaf1fb}
+.pdf-page-indicator{display:flex;align-items:center;gap:6px;color:#334155;font:700 .82rem var(--font)}
+.pdf-page-indicator input{width:52px;padding:5px 6px;border-radius:7px;border:1px solid #d7e3ee;text-align:center;font:700 .82rem var(--font)}
+.pdf-lang-toggle{display:flex;gap:6px;flex-wrap:wrap}
+.pdf-lang-btn{padding:6px 12px;border-radius:999px;border:1px solid #d7e3ee;background:#f3f6fa;color:#334155;font:700 .76rem var(--font);cursor:pointer;white-space:nowrap;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.pdf-lang-btn:hover{background:#eaf1fb}
+.pdf-lang-btn.active{background:#17233d;color:#fff;border-color:#17233d}
+.pdf-open-tab{margin-left:auto;color:#1e6fd9;font:700 .78rem var(--font);text-decoration:none;white-space:nowrap}
+.pdf-open-tab:hover{text-decoration:underline}
+@media(max-width:560px){.pdf-canvas-toolbar{gap:8px}.pdf-open-tab{margin-left:0;order:5;flex-basis:100%}.pdf-lang-toggle{order:4;flex-basis:100%;justify-content:flex-start}}
+.pdf-canvas-scroll{position:relative;flex:1 1 auto;height:78vh;min-height:520px;overflow:auto;display:flex;justify-content:center;background:#e8edf3}
+#pdf-canvas{display:block;margin:16px auto;box-shadow:0 6px 20px -8px rgba(10,40,70,.35);background:#fff}
+.pdf-loading{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#5b6b80;font:700 .85rem var(--font);background:#e8edf3cc}
+/* El atributo "hidden" puesto desde JS debe ganar siempre sobre display:block/flex de arriba;
+   si no, el iframe, el canvas o el aviso de "Cargando" quedan visibles aunque se oculten. */
+.pdf-canvas-scroll [hidden],.pdf-viewer-wrap [hidden]{display:none!important}
+.pdf-index{position:sticky;top:16px;max-height:78vh;overflow-y:auto;padding:16px;border-radius:14px;border:1px solid #e3e9f1;background:linear-gradient(150deg,#ffffff,#eef3fa 75%)}
+.pdf-index h3{margin:0 0 10px;color:#17233d;font-size:.9rem;font-weight:800}
+.pdf-index-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.pdf-index-item{position:relative;display:flex;align-items:flex-start;gap:8px;width:100%;padding:9px 10px;border:1px solid transparent;border-radius:9px;background:transparent;text-align:left;cursor:pointer;font:inherit;color:#334155;transition:background .15s ease,border-color .15s ease}
+.pdf-index-item:hover,.pdf-index-item.active{background:#eaf1fb;border-color:#cfe0f3}
+.pdf-index-num{flex-shrink:0;color:#7a8aa0;font-size:.68rem;font-weight:800;margin-top:2px}
+.pdf-index-copy{display:block;min-width:0}
+.pdf-index-label{display:block;font-size:.8rem;line-height:1.3;color:#1e293b;font-weight:700}
+/* La descripción del subtema queda siempre visible debajo del título (ya no es un
+   tooltip flotante que solo aparecía al pasar el mouse): así nunca se tapa ni se corta,
+   ni en escritorio ni en pantallas táctiles donde no existe el hover. */
+.pdf-index-desc{display:block;margin-top:3px;color:#64748b;font-size:.71rem;line-height:1.42;white-space:normal;overflow-wrap:break-word}
+@media(max-width:900px){.pdf-layout{grid-template-columns:1fr}.pdf-index{position:static;max-height:none}.pdf-frame{height:70vh}.pdf-canvas-scroll{height:70vh}}
+
+#flashcards-panel{position:relative!important}
+.fc-level-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
+.fc-level-tab{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid #d7e3ee;background:#f3f6fa;color:#334155;font:700 .8rem var(--font);cursor:pointer;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.fc-level-tab small{font-weight:800;color:#7a8aa0;background:#fff;padding:1px 6px;border-radius:999px}
+.fc-level-tab.active{background:#17233d;color:#fff;border-color:#17233d}
+.fc-level-tab.active small{background:#ffffff26;color:#fff}
+.fc-level-tab.locked{opacity:.45;cursor:not-allowed}
+.fc-round-report{max-width:560px;margin:18px auto 0;padding:24px;border-radius:16px;background:linear-gradient(150deg,#ffffff,#eef3fa 75%);border:1px solid #e3e9f1;text-align:center}
+.fc-round-report h3{margin:0 0 8px;color:#17233d}
+.fc-correct-list{text-align:left;margin:14px 0;padding:14px 16px;border-radius:10px;background:#e3f6ec}
+.fc-correct-list ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.fc-correct-list li{padding:7px 10px;border-radius:8px;background:#ffffffa0}
+.fc-correct-list li{display:flex;flex-direction:column;gap:2px}
+.fc-correct-q{color:#0d5c3c;font-weight:700;font-size:.82rem}
+.fc-correct-your{color:#0d8a52;font-size:.76rem}
+.fc-wrong-list{text-align:left;margin:14px 0;padding:14px 16px;border-radius:10px;background:#fde8e8}
+.fc-wrong-list ul{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.fc-wrong-list li{padding:8px 10px;border-radius:8px;background:#ffffffa0;display:flex;flex-direction:column;gap:2px}
+.fc-wrong-q{color:#5c1f1f;font-weight:700;font-size:.82rem}
+.fc-wrong-your{color:#b3261e;font-size:.76rem}
+.fc-wrong-correct{color:#0d7a4f;font-size:.76rem;font-weight:700}
+.fc-wrong-hint{margin:10px 0 0;color:#6b4a1f;font-size:.74rem;font-style:italic}
+.fc-perfect{color:#0d9467;font-weight:700}
+.fc-round-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.fc-retry-btn,.fc-next-level-btn{padding:10px 18px;border-radius:10px;border:0;font:800 .82rem var(--font);cursor:pointer}
+.fc-retry-btn{background:#eef3fa;color:#17233d}
+.fc-next-level-btn{background:#0d9467;color:#fff}
+.fc-empty{color:#7a8aa0;text-align:center;padding:30px 0}
+
+/* Tarjeta con alternativas de opción múltiple */
+.study-flashcard{height:380px!important}
+.flashcard-face{padding:28px 32px!important;gap:14px!important}
+.flashcard-face.flashcard-front{justify-content:flex-start!important;padding-top:34px!important}
+.flashcard-face.flashcard-front strong{font-size:clamp(1.05rem,2.3vw,1.4rem)!important;max-width:100%!important}
+.fc-options{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%;margin-top:6px}
+.fc-option{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid #ffffff3d;background:#ffffff14;color:#fff;text-align:left;cursor:pointer;font:600 .82rem var(--font);line-height:1.3;transition:background .15s ease,transform .15s ease,border-color .15s ease}
+.fc-option:hover:not(:disabled){background:#ffffff26;transform:translateY(-2px)}
+.fc-option:disabled{cursor:default}
+.fc-option-letter{flex-shrink:0;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#ffffff22;font-weight:800;font-size:.72rem}
+.fc-option-chosen{background:#ffffff38!important;border-color:#ffffff80!important}
+.flashcard-back em#fc-back-feedback{color:#eaf6ff;opacity:.85}
+.flashcard-back.fc-result-correct{background:linear-gradient(135deg,#0a8a5c,#1fe3a0)!important;transition:background .3s ease}
+.flashcard-back.fc-result-wrong{background:linear-gradient(135deg,#b32424,#ef5858)!important;transition:background .3s ease}
+#fc-back-label{transition:color .2s ease}
+
+/* Sacudida cuando la respuesta es incorrecta (no confetti) */
+@keyframes fcShake{
+  10%,90%{transform:translateX(-1px) rotate(-.3deg)}
+  20%,80%{transform:translateX(2px) rotate(.4deg)}
+  30%,50%,70%{transform:translateX(-6px) rotate(-1deg)}
+  40%,60%{transform:translateX(6px) rotate(1deg)}
+}
+.fc-shake{animation:fcShake .6s cubic-bezier(.36,.07,.19,.97) both}
+
+/* Confetti: mezcla de cuadrados, círculos y rectángulos cayendo con giro */
+.fc-confetti-burst{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:6}
+.fc-confetti-piece{position:absolute;width:9px;height:9px;opacity:0;animation-name:fcConfettiFall;animation-duration:var(--dur,1.1s);animation-timing-function:cubic-bezier(.15,.5,.4,1);animation-fill-mode:forwards}
+.fc-confetti-sq{border-radius:2px}
+.fc-confetti-circ{border-radius:50%}
+.fc-confetti-rect{width:6px;height:14px;border-radius:2px}
+@keyframes fcConfettiFall{
+  0%{opacity:1;transform:translate(0,0) rotate(0) scale(1)}
+  70%{opacity:1}
+  100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rot)) scale(.6)}
+}
+@media(max-width:650px){.fc-options{grid-template-columns:1fr}.study-flashcard{height:440px!important}}

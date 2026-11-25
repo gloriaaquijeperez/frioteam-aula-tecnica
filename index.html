@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#eef3fb">
+<title>Frioteam · Aula Técnica</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="home-cards.css">
+</head>
+<body>
+
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="bg-pattern" aria-hidden="true"></div>
+
+<button class="menu-toggle" id="menu-toggle" aria-label="Abrir menú">
+  <span></span><span></span><span></span>
+</button>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<aside class="sidebar" id="sidebar">
+  <a class="brand" href="#inicio">
+    <img src="LOGO_T_1.PNG" alt="Frioteam">
+  </a>
+  <div class="brand-tag">Aula técnica</div>
+
+  <div class="side-label">Menú principal</div>
+  <nav class="navigation" aria-label="Navegación principal">
+    <a class="nav-link active" data-target="inicio" href="#inicio"><span class="nav-icon">⌂</span> Inicio</a>
+    <button type="button" class="nav-link nav-link-expand" id="nav-materials-toggle" aria-expanded="false" aria-controls="nav-materials-submenu"><span class="nav-icon">▤</span> Materiales de estudio <span class="nav-expand-caret">▾</span></button>
+    <div class="nav-submenu" id="nav-materials-submenu" hidden></div>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="help-icon">?</div>
+    <div><strong>¿Necesitas ayuda?</strong><span>Consulta con tu supervisor</span></div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="content">
+
+    <!-- INICIO -->
+    <section class="view" id="inicio">
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="live-dot"></span> AULA TÉCNICA FRIOTEAM</div>
+          <h1>Tu conocimiento mantiene<br class="desktop-break"> todo en marcha.</h1>
+          <p>Consulta los manuales, repasa por tema y pon a prueba lo aprendido antes de cada evaluación.</p>
+        </div>
+      </section>
+      <section class="stat-row" id="stat-row" aria-label="Resumen"></section>
+
+      <section class="section-heading">
+        <div>
+          <h2 class="library-title"><span class="live-dot"></span>BIBLIOTECA FRIOTEAM</h2>
+        </div>
+      </section>
+      <div class="topic-shortcuts" id="topic-shortcuts"></div>
+    </section>
+
+    <!-- MATERIALES -->
+    <section class="view" id="materiales" hidden>
+      <section class="section-heading">
+        <div>
+          <div class="eyebrow muted">BIBLIOTECA TÉCNICA</div>
+          <h2>Materiales de estudio</h2>
+          <p>Manuales y cursos organizados por tema, listos para descargar.</p>
+        </div>
+        <label class="search-box"><span>⌕</span><input id="search" type="search" placeholder="Buscar material..." aria-label="Buscar material"></label>
+      </section>
+
+      <div class="filter-row" id="filter-row" role="group" aria-label="Filtrar materiales"></div>
+
+      <div id="materiales-groups"></div>
+    </section>
+
+    <!-- GUÍA DE ESTUDIO POR MATERIAL -->
+    <section class="view study-page" id="material-detalle" hidden>
+      <button class="back-link" id="back-to-library">← Todos los materiales</button>
+      <section class="study-document-header" id="study-document-header"></section>
+      <div class="study-tabs" role="tablist" aria-label="Herramientas de estudio">
+        <button class="study-tab active" data-study-tab="pdfview" role="tab" aria-selected="true">Material de estudio</button>
+        <button class="study-tab" data-study-tab="flashcards" role="tab" aria-selected="false">Flashcards</button>
+      </div>
+      <section class="study-panel" id="pdfview-panel"></section>
+      <section class="study-panel" id="flashcards-panel" hidden></section>
+    </section>
+
+    <!-- EVALUACIONES -->
+    <section class="view" id="evaluaciones" hidden>
+      <section class="section-heading">
+        <div>
+          <div class="eyebrow muted">PON A PRUEBA LO APRENDIDO</div>
+          <h2>Evaluaciones por tema</h2>
+          <p>Elige un tema para una práctica corta. Puedes repetirla cuantas veces quieras.</p>
+        </div>
+      </section>
+
+      <div class="topic-grid" id="topic-grid"></div>
+    </section>
+
+    <footer>
+      Frioteam · Plataforma de estudios
+      <span>Aprendemos para brindar un mejor servicio.</span>
+    </footer>
+  </div>
+</main>
+
+<div class="modal-backdrop" id="quiz-modal" aria-hidden="true">
+  <section class="quiz-card" role="dialog" aria-modal="true" aria-labelledby="quiz-title">
+    <button class="close-modal" id="close-quiz" aria-label="Cerrar">×</button>
+    <div id="quiz-content"></div>
+  </section>
+</div>
+
+<div class="study-sheet-backdrop" id="study-sheet-modal" aria-hidden="true">
+  <section class="study-sheet-window" role="dialog" aria-modal="true" aria-labelledby="study-sheet-title">
+    <button class="study-sheet-close" id="study-sheet-close" aria-label="Cerrar hoja">×</button>
+    <div id="study-sheet-content"></div>
+  </section>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
