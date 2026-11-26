@@ -1668,6 +1668,7 @@ function renderPdfPanel(){
   let usingCanvas = false;
   let pdfDoc = null;
   let canvasActivationPromise = null;
+  let canvasFailed = false;
   let pageObserver = null;
   const renderedPages = new Set();
   const scrollWrap = document.querySelector('#pdf-canvas-scroll');
@@ -1754,6 +1755,11 @@ function renderPdfPanel(){
       const wrap = pagesEl.querySelector(`[data-page="${currentPage}"]`);
       if(wrap) wrap.scrollIntoView({block:'start'});
       ensurePageRendered(currentPage);
+    } else if(canvasFailed){
+      // Ya sabemos (de un intento anterior, para este mismo documento) que el visor
+      // rápido no logra activarse: no tiene sentido volver a esperarlo en cada clic,
+      // así que vamos directo al visor clásico.
+      useIframeFallback(currentPage);
     } else if(canvasActivationPromise){
       // El visor rápido (PDF.js) todavía se está activando en segundo plano: en vez de
       // recargar el visor clásico (que vuelve a cargar todo el documento desde cero), se
@@ -1770,7 +1776,9 @@ function renderPdfPanel(){
           if(wrap) wrap.scrollIntoView({block:'start'});
           ensurePageRendered(currentPage);
         } else {
-          // El visor rápido no se pudo activar: recién ahora sí hace falta el clásico.
+          // El visor rápido no se pudo activar: recién ahora sí hace falta el clásico, y
+          // recordamos que falló para no volver a esperarlo en los próximos subtemas.
+          canvasFailed = true;
           useIframeFallback(currentPage);
         }
       });
