@@ -281,7 +281,11 @@ function goTo(target){
   }
   document.querySelector('#sidebar').classList.remove('open');
   document.querySelector('#sidebar-overlay').classList.remove('open');
-  window.scrollTo({top:0, behavior:'smooth'});
+  // Antes el scroll al cambiar de sección era "smooth" (con animación). Se cambia a
+  // instantáneo porque esa fracción de segundo de animación podía dar la sensación de
+  // que el clic no había hecho nada, llevando a hacer clic de nuevo (y a veces, ese
+  // segundo clic caía ya sobre la vista nueva, en un lugar distinto al esperado).
+  window.scrollTo({top:0, behavior:'auto'});
   revealOnScroll();
 }
 document.querySelectorAll('[data-target]').forEach(el => {
