@@ -18,6 +18,9 @@
 // desde la caché de Cloudflare, instantáneo.
 const REPO = 'gloriaaquijeperez/frioteam-aula-tecnica';
 const TAG = 'materiales-v1';
+// Súbelo cada vez que se reemplaza un archivo del Release (mismo nombre, contenido nuevo):
+// cambia la clave de caché para que Cloudflare no siga sirviendo la copia vieja ya guardada.
+const CACHE_BUST = 'v2';
 
 // Mientras este "worker" sigue caliente (unos minutos; lo decide Cloudflare, no
 // nosotros), recordamos aquí si YA hay una copia completa de un archivo bajándose
@@ -67,7 +70,7 @@ export async function onRequestGet({ params, request, waitUntil }) {
   // Clave de caché sin query string (ignoramos cosas como "?p=13"), para que todos
   // los pedidos de un mismo archivo compartan la misma copia guardada.
   const cacheUrl = new URL(request.url);
-  cacheUrl.search = '';
+  cacheUrl.search = '?' + CACHE_BUST;
   const cacheKeyRequest = new Request(cacheUrl.toString());
   const range = request.headers.get('Range');
 
