@@ -78,7 +78,9 @@
 .pdf-page-wrap{position:relative;min-height:200px;width:100%;display:flex;align-items:center;justify-content:center;flex:none}
 .pdf-page-wrap canvas{display:block;box-shadow:0 6px 20px -8px rgba(10,40,70,.35);background:#fff}
 .pdf-page-wrap:not(.rendered)::after{content:'';width:70%;max-width:640px;aspect-ratio:1/1.3;background:#fff;box-shadow:0 6px 20px -8px rgba(10,40,70,.2)}
-.pdf-loading{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#5b6b80;font:700 .85rem var(--font);background:#e8edf3cc}
+.pdf-loading{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#5b6b80;font:700 .85rem var(--font);background:#e8edf3cc}
+.pdf-loading-spinner{width:28px;height:28px;border-radius:50%;border:3px solid #c3d0df;border-top-color:#3b6fa8;animation:pdf-spin .8s linear infinite}
+@keyframes pdf-spin{to{transform:rotate(360deg)}}
 /* El atributo "hidden" puesto desde JS debe ganar siempre sobre display:block/flex de arriba;
    si no, el iframe, el canvas o el aviso de "Cargando" quedan visibles aunque se oculten. */
 .pdf-canvas-scroll [hidden],.pdf-viewer-wrap [hidden]{display:none!important}

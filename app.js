@@ -813,8 +813,23 @@ const pdfLangChoice = {};
 // Por eso el VISOR usa esta función que los redirige a través de la Cloudflare Pages Function
 // en /pdf/<archivo>, la cual sirve el mismo contenido pero sin forzar la descarga. Los botones
 // de "Descargar PDF" siguen usando el enlace directo de GitHub (eso sí debe forzar la descarga).
+// Cuando se abre index.html directo desde la compu (file://) no hay Cloudflare Function ni
+// garantía de internet, así que en ese caso el visor apunta directo al PDF real que esté en
+// la MISMA carpeta que index.html. Si el nombre de tu copia local es distinto, actualízalo
+// aquí (a la derecha de cada línea).
+const LOCAL_FILE_NAMES = {
+  'MANUALES.DE.REFRIGERACION.pdf': 'MANUALES DE REFRIGERACION.pdf',
+  'CURSO_REFRIG_INDUSTRIAL_NH3_ES.pdf': 'CURSO_REFRIG_INDUSTRIAL_NH3_ES.pdf',
+  'CURSO_REFRIG_INDUSTRIAL_NH3_PORTUGUES.pdf': 'CURSO_REFRIG_INDUSTRIAL_NH3_PORTUGUES.pdf',
+  'I.-.SIR.-.PRIMEIRO.DIA.1.pdf': 'I - SIR - PRIMEIRO DIA (1).pdf',
+  'II.-.SIR.-.SEGUNDO.DIA.pdf': 'II - SIR - SEGUNDO DIA.pdf',
+};
 function toViewerUrl(githubFileUrl){
   const m = /\/releases\/download\/[^/]+\/([^/?#]+)/.exec(githubFileUrl || '');
+  if(location.protocol === 'file:'){
+    const localName = m && LOCAL_FILE_NAMES[m[1]];
+    return localName ? encodeURI(localName) : encodeURI(githubFileUrl || '');
+  }
   return m ? `/pdf/${m[1]}` : encodeURI(githubFileUrl || '');
 }
 function renderPdfPanel(){
@@ -838,7 +853,7 @@ function renderPdfPanel(){
         <a class="pdf-open-tab" href="${fileUrl}" target="_blank" rel="noopener">Abrir en pestaña nueva ↗</a>
       </div>
       <div class="pdf-canvas-scroll" id="pdf-canvas-scroll">
-        <div class="pdf-loading" id="pdf-loading">Cargando documento…</div>
+        <div class="pdf-loading" id="pdf-loading"><span class="pdf-loading-spinner"></span>Cargando documento…</div>
         <div class="pdf-pages" id="pdf-pages" hidden></div>
         <iframe class="pdf-frame" id="pdf-frame" hidden title="PDF de ${r.title}"></iframe>
       </div>
@@ -873,13 +888,15 @@ function renderPdfPanel(){
   const pageInput = document.querySelector('#pdf-page-input');
   const pageTotalEl = document.querySelector('#pdf-page-total');
 
-  // El visor se muestra siempre de inmediato con el método clásico (iframe), que nunca se queda
-  // "cargando": así la persona ve el PDF al instante pase lo que pase con PDF.js. Si PDF.js logra
-  // cargar en segundo plano (sin bloquear nada), se reemplaza por el visor en <canvas>, con TODAS
-  // las páginas en una sola columna con scroll (como el visor clásico), para que los saltos de
-  // subtema no vuelvan a recargar el documento y además se pueda seguir desplazando normalmente.
-  // Si no, se sigue usando el iframe normal (que sí funciona, aunque recargue al cambiar de página).
-  loadingEl.hidden = true;
+  // Mientras se activa el visor rápido (PDF.js, en <canvas>) se muestra nuestra propia pantalla
+  // de carga — nunca el visor nativo del navegador (que se ve distinto en cada equipo y, en
+  // documentos grandes, muestra su propio contador de página que no coincide con el subtema
+  // pedido). Si PDF.js logra activarse, se reemplaza por el visor en <canvas>, con TODAS las
+  // páginas en una sola columna con scroll, para que los saltos de subtema no recarguen el
+  // documento. Solo si PDF.js no logra activarse (o tarda demasiado) se cae recién ahí al visor
+  // clásico (iframe), como último recurso.
+  pagesEl.hidden = true; frame.hidden = true;
+  loadingEl.hidden = false;
 
   function useIframeFallback(page){
     usingCanvas = false;
@@ -982,12 +999,10 @@ function renderPdfPanel(){
     renderPdfPanel();
   }));
 
-  // Visor clásico desde ya (nunca se queda esperando).
-  useIframeFallback(currentPage);
-
-  // Intento de mejora en segundo plano, sin bloquear la vista de arriba. Se guarda la promesa
-  // (canvasActivationPromise) para que, si la persona hace clic en un subtema mientras esto
-  // todavía está en camino, goToPage() pueda esperar el resultado en vez de recargar el PDF.
+  // Intento de activar el visor rápido, con nuestra pantalla de carga puesta mientras tanto
+  // (arriba). Se guarda la promesa (canvasActivationPromise) para que, si la persona hace clic
+  // en un subtema mientras esto todavía está en camino, goToPage() pueda esperar el resultado
+  // en vez de recargar el PDF. Si falla o tarda demasiado, recién ahí se usa el visor clásico.
   canvasActivationPromise = withTimeout(loadPdfjs(), 20000).then(pdfjsLib=>{
     if(!pdfjsLib || !document.contains(panel)) return false;
     return withTimeout(getPdfDoc(resourceIndex, fileUrl, pdfjsLib), 60000).then(doc=>{
@@ -997,13 +1012,17 @@ function renderPdfPanel(){
       pageTotalEl.textContent = totalPages;
       buildPagePlaceholders();
       usingCanvas = true;
+      loadingEl.hidden = true;
       pagesEl.hidden = false;
       frame.hidden = true;
       const wrap = pagesEl.querySelector(`[data-page="${currentPage}"]`);
       if(wrap) wrap.scrollIntoView({block:'start'});
       return ensurePageRendered(currentPage).then(()=>true);
     });
-  }).catch(()=>false);
+  }).catch(()=>false).then(ok=>{
+    if(!ok && document.contains(panel)) useIframeFallback(currentPage);
+    return ok;
+  });
 
   panel.querySelectorAll('[data-pdf-subtopic]').forEach(btn=>{
     btn.addEventListener('click',()=>{

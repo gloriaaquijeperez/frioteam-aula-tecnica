@@ -16,6 +16,15 @@
 const REPO = 'gloriaaquijeperez/frioteam-aula-tecnica';
 const TAG = 'materiales-v1';
 
+// Mientras este "worker" sigue caliente (unos minutos; lo decide Cloudflare, no
+// nosotros), recordamos aquí si YA hay una descarga en curso guardándose en caché
+// para un archivo, para que dos pedidos de trozos distintos del MISMO documento que
+// lleguen casi juntos (normal al abrir un PDF grande) no disparen dos descargas
+// completas en paralelo: el segundo espera a que la primera termine de guardarse y
+// lee su PROPIA copia desde la caché (nunca comparten el mismo cuerpo de respuesta,
+// que solo se puede leer una vez).
+const inFlight = new Map();
+
 export async function onRequestGet({ params, request, waitUntil }) {
   const name = params.name;
   if (!name) return new Response('Falta el nombre del archivo.', { status: 400 });
@@ -25,15 +34,33 @@ export async function onRequestGet({ params, request, waitUntil }) {
   // los pedidos de un mismo archivo compartan la misma copia guardada.
   const cacheUrl = new URL(request.url);
   cacheUrl.search = '';
-  const cacheKey = new Request(cacheUrl.toString(), { method: 'GET' });
+  const range = request.headers.get('Range');
+  const matchHeaders = new Headers();
+  if (range) matchHeaders.set('Range', range);
+  const lookupRequest = () => new Request(cacheUrl.toString(), { headers: matchHeaders });
 
-  // Si ya tenemos el archivo completo guardado, Cloudflare resuelve el pedido de
-  // una (incluyendo si el navegador pidió un "Range"), sin ir a buscarlo de nuevo.
-  const cached = await cache.match(cacheKey, { ignoreMethod: true });
+  // Si ya tenemos el archivo completo guardado, Cloudflare resuelve el pedido de una
+  // (incluyendo si el navegador pidió un "Range": cache.match entiende ese header y
+  // devuelve el trozo correcto), sin ir a buscarlo de nuevo a GitHub.
+  let cached = await cache.match(lookupRequest());
   if (cached) {
     const resp = new Response(cached.body, cached);
     resp.headers.set('Access-Control-Allow-Origin', '*');
     return resp;
+  }
+
+  // Si otro pedido para este mismo archivo ya está guardándose en caché ahora mismo,
+  // esperamos a que termine y lo leemos de ahí, en vez de volver a pedirle a GitHub
+  // el archivo completo nosotros también.
+  if (inFlight.has(name)) {
+    await inFlight.get(name).catch(() => {});
+    cached = await cache.match(lookupRequest());
+    if (cached) {
+      const resp = new Response(cached.body, cached);
+      resp.headers.set('Access-Control-Allow-Origin', '*');
+      return resp;
+    }
+    // Si por algo no quedó guardado, seguimos abajo y lo pedimos nosotros mismos.
   }
 
   const upstream = `https://github.com/${REPO}/releases/download/${TAG}/${encodeURIComponent(name)}`;
@@ -69,11 +96,16 @@ export async function onRequestGet({ params, request, waitUntil }) {
   const len = upstreamResp.headers.get('Content-Length');
   if (len) headers.set('Content-Length', len);
 
+  // Clonamos ANTES de leer nada: una copia se guarda en caché (en segundo plano, sin
+  // hacer esperar a quien pidió el archivo ahora mismo) y la otra se devuelve ya mismo.
   const fullResponse = new Response(upstreamResp.body, { status: 200, headers });
-
-  // Guardamos una copia en la caché de Cloudflare sin hacer esperar a quien pidió
-  // el archivo ahora mismo (waitUntil sigue en segundo plano tras responder).
-  waitUntil(cache.put(cacheKey, fullResponse.clone()));
+  const putPromise = cache.put(new Request(cacheUrl.toString()), fullResponse.clone());
+  inFlight.set(name, putPromise);
+  waitUntil(
+    putPromise
+      .catch(() => {})
+      .finally(() => inFlight.delete(name))
+  );
 
   const resp = new Response(fullResponse.body, fullResponse);
   resp.headers.set('Access-Control-Allow-Origin', '*');
