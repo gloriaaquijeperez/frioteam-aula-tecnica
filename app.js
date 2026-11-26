@@ -1754,11 +1754,27 @@ function renderPdfPanel(){
       const wrap = pagesEl.querySelector(`[data-page="${currentPage}"]`);
       if(wrap) wrap.scrollIntoView({block:'start'});
       ensurePageRendered(currentPage);
+    } else if(canvasActivationPromise){
+      // El visor rápido (PDF.js) todavía se está activando en segundo plano: en vez de
+      // recargar el visor clásico (que vuelve a cargar todo el documento desde cero), se
+      // espera a que termine de activarse y la página pedida se abre directo en su canvas.
+      // Mientras tanto se muestra la pantalla de carga ENCIMA del documento que ya estaba
+      // visible (no se pierde ni se recarga nada de lo que ya se veía).
+      loadingEl.hidden = false;
+      canvasActivationPromise.then(ok=>{
+        if(!document.contains(panel)) return;
+        if(ok && pdfDoc){
+          usingCanvas = true;
+          pagesEl.hidden = false; frame.hidden = true;
+          const wrap = pagesEl.querySelector(`[data-page="${currentPage}"]`);
+          if(wrap) wrap.scrollIntoView({block:'start'});
+          ensurePageRendered(currentPage);
+        } else {
+          // El visor rápido no se pudo activar: recién ahora sí hace falta el clásico.
+          useIframeFallback(currentPage);
+        }
+      });
     } else {
-      // El visor rápido (PDF.js) puede seguir activándose en segundo plano; mientras tanto
-      // no se hace esperar a la persona viendo una pantalla de carga: se muestra la página
-      // pedida YA MISMO en el visor clásico. Si el visor rápido termina de activarse después,
-      // esta misma página queda abierta ahí directo (ver más abajo), sin perder el lugar.
       useIframeFallback(currentPage);
     }
   }
