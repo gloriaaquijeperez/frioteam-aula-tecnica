@@ -1677,15 +1677,13 @@ function renderPdfPanel(){
   const pageInput = document.querySelector('#pdf-page-input');
   const pageTotalEl = document.querySelector('#pdf-page-total');
 
-  // Mientras se activa el visor rápido (PDF.js, en <canvas>) se muestra nuestra propia pantalla
-  // de carga — nunca el visor nativo del navegador (que se ve distinto en cada equipo y, en
-  // documentos grandes, muestra su propio contador de página que no coincide con el subtema
-  // pedido). Si PDF.js logra activarse, se reemplaza por el visor en <canvas>, con TODAS las
-  // páginas en una sola columna con scroll, para que los saltos de subtema no recarguen el
-  // documento. Solo si PDF.js no logra activarse (o tarda demasiado) se cae recién ahí al visor
-  // clásico (iframe), como último recurso.
-  pagesEl.hidden = true; frame.hidden = true;
-  loadingEl.hidden = false;
+  // El visor se muestra siempre de inmediato con el método clásico (iframe), para que la
+  // persona vea el documento al instante en vez de esperar viendo una pantalla de carga
+  // (en documentos grandes, activar el visor rápido puede tardar). Si PDF.js logra cargar
+  // en segundo plano (sin bloquear nada), se reemplaza por el visor en <canvas>, con TODAS
+  // las páginas en una sola columna con scroll, para que los saltos de subtema no vuelvan a
+  // recargar el documento. El único costo: mientras tanto, el contador de página del visor
+  // clásico puede no coincidir exactamente con el subtema pedido, hasta que se haga el cambio.
 
   function useIframeFallback(page){
     usingCanvas = false;
@@ -1756,23 +1754,11 @@ function renderPdfPanel(){
       const wrap = pagesEl.querySelector(`[data-page="${currentPage}"]`);
       if(wrap) wrap.scrollIntoView({block:'start'});
       ensurePageRendered(currentPage);
-    } else if(canvasActivationPromise){
-      // El visor rápido (PDF.js) todavía se está activando en segundo plano: en vez de
-      // rendirse de inmediato al visor clásico (que recarga todo el documento), se espera
-      // a que termine de activarse y la página pedida se muestra directo en su canvas.
-      loadingEl.hidden = false;
-      canvasActivationPromise.then(ok=>{
-        if(ok && pdfDoc){
-          usingCanvas = true;
-          pagesEl.hidden = false; frame.hidden = true;
-          const wrap = pagesEl.querySelector(`[data-page="${currentPage}"]`);
-          if(wrap) wrap.scrollIntoView({block:'start'});
-          ensurePageRendered(currentPage);
-        } else {
-          useIframeFallback(currentPage);
-        }
-      });
     } else {
+      // El visor rápido (PDF.js) puede seguir activándose en segundo plano; mientras tanto
+      // no se hace esperar a la persona viendo una pantalla de carga: se muestra la página
+      // pedida YA MISMO en el visor clásico. Si el visor rápido termina de activarse después,
+      // esta misma página queda abierta ahí directo (ver más abajo), sin perder el lugar.
       useIframeFallback(currentPage);
     }
   }
@@ -1788,10 +1774,12 @@ function renderPdfPanel(){
     renderPdfPanel();
   }));
 
-  // Intento de activar el visor rápido, con nuestra pantalla de carga puesta mientras tanto
-  // (arriba). Se guarda la promesa (canvasActivationPromise) para que, si la persona hace clic
-  // en un subtema mientras esto todavía está en camino, goToPage() pueda esperar el resultado
-  // en vez de recargar el PDF. Si falla o tarda demasiado, recién ahí se usa el visor clásico.
+  // Visor clásico desde ya (nunca se queda esperando).
+  useIframeFallback(currentPage);
+
+  // Intento de mejora en segundo plano, sin bloquear la vista de arriba. Se guarda la promesa
+  // (canvasActivationPromise) para que, si la persona hace clic en un subtema mientras esto
+  // todavía está en camino, goToPage() pueda esperar el resultado en vez de recargar el PDF.
   canvasActivationPromise = withTimeout(loadPdfjs(), 20000).then(pdfjsLib=>{
     if(!pdfjsLib || !document.contains(panel)) return false;
     return withTimeout(getPdfDoc(resourceIndex, fileUrl, pdfjsLib), 60000).then(doc=>{
@@ -1808,10 +1796,7 @@ function renderPdfPanel(){
       if(wrap) wrap.scrollIntoView({block:'start'});
       return ensurePageRendered(currentPage).then(()=>true);
     });
-  }).catch(()=>false).then(ok=>{
-    if(!ok && document.contains(panel)) useIframeFallback(currentPage);
-    return ok;
-  });
+  }).catch(()=>false);
 
   panel.querySelectorAll('[data-pdf-subtopic]').forEach(btn=>{
     btn.addEventListener('click',()=>{
