@@ -1569,7 +1569,15 @@ function loadPdfjs(){
 }
 function getPdfDoc(resourceIndex, fileUrl, pdfjsLib){
   if(!pdfDocCache[resourceIndex]){
-    pdfDocCache[resourceIndex] = pdfjsLib.getDocument({url: fileUrl}).promise;
+    // disableRange: algunos documentos (libros escaneados viejos, sin optimizar) no tienen
+    // su estructura interna organizada de forma que permita "saltar" a los datos que hacen
+    // falta: PDF.js, al intentar pedir solo trozos ("Range"), termina pidiendo CIENTOS de
+    // pedacitos chicos para ese mismo documento (recreando el problema original de fondo,
+    // solo que esta vez quien lo dispara es PDF.js, no nuestra función). Pidiendo el archivo
+    // COMPLETO de una sola vez (streaming, se va mostrando a medida que llega) se evita esa
+    // tormenta de pedidos: tarda un poco más la primera vez que se abre, pero una vez
+    // abierto, cambiar de subtema es instantáneo (no hace falta pedir nada más).
+    pdfDocCache[resourceIndex] = pdfjsLib.getDocument({url: fileUrl, disableRange: true, disableStream: false}).promise;
   }
   return pdfDocCache[resourceIndex];
 }
@@ -1806,7 +1814,10 @@ function renderPdfPanel(){
   // todavía está en camino, goToPage() pueda esperar el resultado en vez de recargar el PDF.
   canvasActivationPromise = withTimeout(loadPdfjs(), 20000).then(pdfjsLib=>{
     if(!pdfjsLib || !document.contains(panel)) return false;
-    return withTimeout(getPdfDoc(resourceIndex, fileUrl, pdfjsLib), 60000).then(doc=>{
+    // Para un documento muy pesado (cientos de MB), bajarlo completo puede tardar más de un
+    // minuto la primera vez: le damos varios minutos antes de darnos por vencidos, en vez de
+    // caer al visor clásico de forma permanente por solo haber tardado un poco más.
+    return withTimeout(getPdfDoc(resourceIndex, fileUrl, pdfjsLib), 300000).then(doc=>{
       if(!document.contains(panel)) return false;
       pdfDoc = doc;
       totalPages = doc.numPages;
